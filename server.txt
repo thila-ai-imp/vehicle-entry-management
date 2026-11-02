@@ -1,0 +1,65 @@
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+const cors = require('cors');
+const path = require('path');
+
+const app = express();
+const PORT = 3000;
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// உள்ளூர் ஆஃப்லைன் டேட்டாபேஸ் (CMDA.db)
+const db = new sqlite3.Database('./cmda_yard.db', (err) => {
+  if (err) console.error("Database connection error:", err);
+  else console.log("Connected to Offline SQLite Database.");
+});
+
+// அட்டவணை உருவாக்கம்
+db.serialize(() => {
+  db.run(`CREATE TABLE IF NOT EXISTS vehicles (
+    id TEXT PRIMARY KEY,
+    number TEXT,
+    entryGate TEXT,
+    exitGate TEXT,
+    type TEXT,
+    entryType TEXT,
+    entry TEXT,
+    exit TEXT,
+    amount REAL
+  )`);
+});
+
+// வாகனங்களின் முழு விவரங்களைப் பெறுதல்
+app.get('/api/vehicles', (req, res) => {
+  db.all("SELECT * FROM vehicles ORDER BY rowid DESC", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// புதிய என்ட்ரி பதிவு
+app.post('/api/vehicles', (req, res) => {
+  const { id, number, entryGate, type, entryType, entry } = req.body;
+  const sql = `INSERT INTO vehicles (id, number, entryGate, exitGate, type, entryType, entry, exit, amount) VALUES (?, ?, ?, NULL, ?, ?, ?, NULL, 0)`;
+  db.run(sql, [id, number, entryGate, type, entryType, entry], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: "Vehicle added successfully" });
+  });
+});
+
+// எக்சிட் பதிவு
+app.put('/api/vehicles/:id/exit', (req, res) => {
+  const { exit, exitGate, amount } = req.body;
+  const sql = `UPDATE vehicles SET exit = ?, exitGate = ?, amount = ? WHERE id = ?`;
+  db.run(sql, [exit, exitGate, amount, req.params.id], function(err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: "Exit registered" });
+  });
+});
+
+// சர்வரை அனைத்து LAN கணினிகளுக்கும் திறத்தல் (0.0.0.0)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`CMDA Gate Management Server running offline at http://localhost:${PORT}`);
+});

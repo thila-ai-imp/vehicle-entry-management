@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in · CMDA Steel Yard</title>
+<style>
+  :root {
+    --navy: #0c2744;
+    --navy-mid: #14365c;
+    --gold: #c4a35a;
+    --gold-soft: #e8d5a3;
+    --ink: #152033;
+    --muted: #5b6b80;
+    --line: #d7deea;
+    --paper: #f6f3ec;
+    --white: #ffffff;
+    --danger: #9b2335;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI", Calibri, "Noto Sans", sans-serif;
+    color: var(--ink);
+    background: var(--navy);
+  }
+  .shell {
+    min-height: 100%;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+  }
+  .brand {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(1200px 600px at -10% 110%, rgba(196,163,90,0.18), transparent 55%),
+      radial-gradient(800px 500px at 110% -10%, rgba(255,255,255,0.08), transparent 40%),
+      linear-gradient(165deg, #0a1e36 0%, var(--navy) 46%, #0f3054 100%);
+    color: white;
+    padding: 56px 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .brand::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse at 30% 40%, black 20%, transparent 75%);
+    pointer-events: none;
+  }
+  .brand-top, .brand-mid, .brand-foot { position: relative; z-index: 1; }
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: 0.28em;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--gold-soft);
+  }
+  .kicker::before, .kicker::after {
+    content: "";
+    width: 28px;
+    height: 1px;
+    background: var(--gold);
+  }
+  .seal {
+    width: 92px;
+    height: 92px;
+    margin: 28px 0 22px;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 600;
+    font-size: clamp(28px, 3.4vw, 42px);
+    line-height: 1.18;
+    margin: 0 0 14px;
+    max-width: 12ch;
+  }
+  .lede {
+    margin: 0;
+    max-width: 36ch;
+    font-size: 15px;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.78);
+  }
+  .meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 48px;
+    padding-top: 22px;
+    border-top: 1px solid rgba(196,163,90,0.35);
+  }
+  .meta span {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .meta strong {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .brand-foot {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.04em;
+  }
+  .panel {
+    background: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 28px;
+  }
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: var(--white);
+    border: 1px solid rgba(12,39,68,0.06);
+    box-shadow:
+      0 1px 1px rgba(12,39,68,0.04),
+      0 24px 50px rgba(12,39,68,0.10);
+    padding: 40px 40px 32px;
+  }
+  .card-rule {
+    height: 3px;
+    width: 56px;
+    background: linear-gradient(90deg, var(--gold), #8d6b2a);
+    margin-bottom: 22px;
+  }
+  .card h2 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 28px;
+    margin: 0 0 8px;
+    color: var(--navy);
+  }
+  .card p.sub {
+    margin: 0 0 28px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--navy-mid);
+    margin-bottom: 8px;
+  }
+  .field { margin-bottom: 18px; }
+  .control {
+    position: relative;
+  }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    height: 50px;
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 0 14px;
+    font-size: 15px;
+    font-family: inherit;
+    color: var(--ink);
+    background: #fcfcfb;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus {
+    border-color: var(--navy-mid);
+    box-shadow: 0 0 0 3px rgba(20,54,92,0.12);
+    background: white;
+  }
+  .toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 6px 8px;
+  }
+  .toggle:hover { color: var(--navy); }
+  .submit {
+    width: 100%;
+    height: 52px;
+    margin-top: 8px;
+    border: 0;
+    border-radius: 2px;
+    background: linear-gradient(180deg, #1a4a7a 0%, var(--navy) 100%);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(12,39,68,0.18);
+  }
+  .submit:hover { filter: brightness(1.06); }
+  .submit:disabled {
+    opacity: 0.65;
+    cursor: wait;
+    filter: none;
+  }
+  .alert {
+    display: none;
+    margin-bottom: 18px;
+    padding: 11px 12px;
+    border-left: 3px solid var(--danger);
+    background: #fbecee;
+    color: var(--danger);
+    font-size: 13px;
+  }
+  .alert.show { display: block; }
+  .hint {
+    margin: 22px 0 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .hint strong { color: var(--navy-mid); }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .brand { min-height: 280px; padding: 36px 28px; }
+    h1 { max-width: none; }
+    .meta { grid-template-columns: 1fr 1fr; margin-top: 28px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <section class="brand">
+    <div class="brand-top">
+      <div class="kicker">Authorized access</div>
+      <svg class="seal" viewBox="0 0 92 92" aria-hidden="true">
+        <circle cx="46" cy="46" r="44" fill="none" stroke="#c4a35a" stroke-width="1.4"/>
+        <circle cx="46" cy="46" r="38" fill="none" stroke="rgba(232,213,163,0.55)" stroke-width="0.8"/>
+        <circle cx="46" cy="46" r="30" fill="rgba(12,39,68,0.35)" stroke="#c4a35a" stroke-width="1"/>
+        <path d="M46 22 L51 38 H68 L54 48 L59 64 L46 54 L33 64 L38 48 L24 38 H41 Z" fill="#c4a35a"/>
+      </svg>
+      <h1>CMDA Market Management Committee</h1>
+      <p class="lede">Chennai Iron &amp; Steel Yard vehicle entry portal. Sign in to register movements across Gate 1, Gate 2 and Gate 3.</p>
+      <div class="meta">
+        <div>
+          <span>Facility</span>
+          <strong>Chennai Steel Yard</strong>
+        </div>
+        <div>
+          <span>Network</span>
+          <strong>Private intranet</strong>
+        </div>
+      </div>
+    </div>
+    <div class="brand-foot">Restricted to yard operators · Session expires after 12 hours of inactivity</div>
+  </section>
+
+  <section class="panel">
+    <form class="card" id="loginForm" autocomplete="on">
+      <div class="card-rule"></div>
+      <h2>Sign in</h2>
+      <p class="sub">Enter your operator credentials to open the central vehicle register.</p>
+      <div id="alert" class="alert" role="alert"></div>
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" value="admin" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="control">
+          <input id="password" name="password" type="password" value="admin" autocomplete="current-password" required>
+          <button class="toggle" type="button" id="togglePwd">Show</button>
+        </div>
+      </div>
+      <button class="submit" type="submit" id="submitBtn">Enter portal</button>
+      <p class="hint">Default account is <strong>admin</strong> / <strong>admin</strong>. Change this password before production use if the LAN is shared beyond the yard desk.</p>
+    </form>
+  </section>
+</div>
+<script>
+const form = document.getElementById("loginForm");
+const alertBox = document.getElementById("alert");
+const submitBtn = document.getElementById("submitBtn");
+const togglePwd = document.getElementById("togglePwd");
+const password = document.getElementById("password");
+
+togglePwd.addEventListener("click", () => {
+  const show = password.type === "password";
+  password.type = show ? "text" : "password";
+  togglePwd.textContent = show ? "Hide" : "Show";
+});
+
+function showError(msg) {
+  alertBox.textContent = msg;
+  alertBox.classList.add("show");
+}
+
+(async function alreadyIn() {
+  try {
+    const res = await fetch("/api/session", { credentials: "include" });
+    if (res.ok) location.replace("/");
+  } catch (e) {}
+})();
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  alertBox.classList.remove("show");
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Signing in…";
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: document.getElementById("username").value.trim(),
+        password: password.value
+      })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showError(body.error || "Invalid username or password.");
+      return;
+    }
+    location.replace("/");
+  } catch (err) {
+    showError("Cannot reach the server. Confirm the host PC is running.");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Enter portal";
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+node_modules/
+cmda_yard.db
+cmda_yard.db-shm
+cmda_yard.db-wal
+*.log

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMDA Steel Yard - Vehicle Entry Management</title>
+<script src="/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#eef2f7;color:#172033}
+header{background:#12345a;color:white;padding:16px 22px}
+.header-bar{max-width:1150px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.header-titles{text-align:left}
+header h2{margin:0 0 6px;letter-spacing:0.5px}
+header .subtitle{font-size:13px;letter-spacing:1px;opacity:0.9}
+.header-user{display:flex;align-items:center;gap:12px}
+.header-user span{font-size:13px;opacity:0.9}
+.header-user button{width:auto;padding:8px 14px;background:#0b2744;border:1px solid rgba(255,255,255,0.25);font-size:12px}
+.container{max-width:1150px;margin:20px auto;padding:12px}
+.card{background:white;padding:18px;border-radius:12px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,0.06)}
+h3{margin-top:0;color:#12345a}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{font-size:13px;font-weight:bold;display:block;margin-bottom:6px}
+input,select,button{width:100%;padding:11px;border:1px solid #ccd4df;border-radius:6px;font-size:14px}
+button{background:#145da0;color:white;border:0;font-weight:bold;cursor:pointer}
+button:hover{opacity:.9}
+.green{background:#16834a}
+.red{background:#c0392b}
+.orange{background:#d97706}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:#12345a;color:white;padding:16px;border-radius:10px}
+.stat span{font-size:13px;opacity:0.85}
+.stat strong{font-size:24px;display:block;margin-top:6px}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:850px}
+th,td{padding:11px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:13px}
+th{background:#f1f5f9;color:#334155;font-weight:bold}
+.actions{display:flex;flex-direction:column;gap:5px}
+.actions button{padding:6px 10px;font-size:12px}
+.status-pill{display:inline-block;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:bold}
+.status-inside{background:#fef3c7;color:#92400e}
+.status-done{background:#dcfce7;color:#166534}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:999;align-items:center;justify-content:center}
+.modal-box{background:white;padding:24px;border-radius:12px;width:90%;max-width:420px;box-shadow:0 4px 20px rgba(0,0,0,0.2)}
+.modal-buttons{display:flex;gap:10px;margin-top:16px}
+.banner{display:none;margin-bottom:12px;padding:10px 12px;border-radius:8px;font-size:13px}
+.banner.err{display:block;background:#fee2e2;color:#991b1b}
+.banner.ok{display:block;background:#dcfce7;color:#166534}
+@media print{
+  .no-print, .modal-overlay{display:none!important}
+  body{background:white}
+  .card{box-shadow:none;border:1px solid #eee}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-bar">
+    <div class="header-titles">
+      <h2>CMDA MARKET MANAGEMENT COMMITTEE</h2>
+      <div class="subtitle">CHENNAI STEEL YARD — INTRANET VEHICLE ENTRY</div>
+    </div>
+    <div class="header-user no-print">
+      <span id="signedInUser">admin</span>
+      <button type="button" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+  <div id="banner" class="banner"></div>
+  <div class="stats">
+    <div class="stat"><span>Total Registered</span><strong id="total">0</strong></div>
+    <div class="stat"><span>Vehicles Inside</span><strong id="inside">0</strong></div>
+    <div class="stat"><span>Vehicles Exited</span><strong id="exited">0</strong></div>
+    <div class="stat"><span>Total Revenue</span><strong id="collection">₹0.00</strong></div>
+  </div>
+
+  <div class="card">
+    <h3>Vehicle Entry Registration</h3>
+    <div class="grid">
+      <div>
+        <label for="entryGate">System Terminal Gate</label>
+        <select id="entryGate"></select>
+      </div>
+      <div>
+        <label for="vehicle">Vehicle Number</label>
+        <input id="vehicle" placeholder="TN 04 AB 1234" autocomplete="off">
+      </div>
+      <div>
+        <label for="type">Vehicle Type</label>
+        <select id="type"></select>
+      </div>
+      <div>
+        <label for="entryType">Entry Type</label>
+        <select id="entryType">
+          <option value="single">Single Entry</option>
+          <option value="multiple">Multiple Entry</option>
+        </select>
+      </div>
+      <div>
+        <label for="entryTime">Entry Date & Time</label>
+        <input type="datetime-local" id="entryTime">
+      </div>
+    </div>
+    <br>
+    <button onclick="addVehicle()">SAVE TO CENTRAL DATABASE</button>
+  </div>
+
+  <div class="card">
+    <h3>Vehicle Movement Log (Real-time Sync)</h3>
+    <div class="grid no-print">
+      <div>
+        <label for="search">Search Vehicle Number</label>
+        <input id="search" placeholder="Type to filter..." oninput="render()">
+      </div>
+      <div>
+        <label for="filter">Filter By Status</label>
+        <select id="filter" onchange="render()">
+          <option value="all">All Records</option>
+          <option value="inside">Currently Inside</option>
+          <option value="exited">Completed / Exited</option>
+        </select>
+      </div>
+    </div>
+    <br>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Vehicle No</th>
+            <th>Entry Gate</th>
+            <th>Exit Gate</th>
+            <th>Vehicle Type</th>
+            <th>Entry Type</th>
+            <th>Entry Time</th>
+            <th>Exit Time</th>
+            <th>Duration</th>
+            <th>Amount</th>
+            <th class="no-print">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="records"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card no-print">
+    <h3>Daily Settlement Report</h3>
+    <div class="grid">
+      <div>
+        <label for="reportDate">Select Date</label>
+        <input type="date" id="reportDate" onchange="report()">
+      </div>
+      <div>
+        <label for="reportAmount">Total Collected</label>
+        <input id="reportAmount" readonly>
+      </div>
+      <div>
+        <label for="reportCount">Exited Count</label>
+        <input id="reportCount" readonly>
+      </div>
+    </div>
+    <br>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="green" style="flex:1" onclick="exportCSV()">DOWNLOAD CSV</button>
+      <button class="orange" style="flex:1" onclick="window.print()">PRINT REPORT</button>
+    </div>
+  </div>
+</div>
+
+<div id="exitModal" class="modal-overlay">
+  <div class="modal-box">
+    <h4>Process Vehicle Exit</h4>
+    <p style="margin:0 0 12px;font-size:14px;color:#475569">Vehicle No: <strong id="modalVehNo" style="color:#12345a"></strong></p>
+
+    <label for="modalExitGate">Exit Gate Terminal</label>
+    <select id="modalExitGate"></select>
+
+    <div style="margin-top:12px">
+      <label for="modalExitTime">Exit Date & Time</label>
+      <input type="datetime-local" id="modalExitTime">
+    </div>
+
+    <div style="margin-top:12px;display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="autoPrintCheck" checked style="width:auto;cursor:pointer">
+      <label for="autoPrintCheck" style="margin:0;font-size:13px;cursor:pointer">Auto-Print Thermal Receipt</label>
+    </div>
+
+    <div class="modal-buttons">
+      <button class="red" style="flex:1" onclick="confirmExit()">CONFIRM & SYNC</button>
+      <button style="flex:1;background:#64748b" onclick="closeExitModal()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const defaultRates = {
+  lorry: { single: 165, multiple: 240 },
+  lmv: { single: 65, multiple: 120 },
+  association: { single: 65, multiple: 120 }
+};
+
+const defaultNames = {
+  lorry: "Lorry / Trailers / Multiaxle",
+  lmv: "Light Motor Vehicle",
+  association: "Steel Yard Trailers Association"
+};
+
+let rates = { ...defaultRates };
+let names = { ...defaultNames };
+let vehicles = [];
+let currentExitId = null;
+
+const $ = id => document.getElementById(id);
+const money = n => "₹" + Number(n).toFixed(2);
+
+async function api(url, options = {}) {
+  const res = await fetch(url, {
+    credentials: "include",
+    ...options,
+    headers: { ...(options.headers || {}) }
+  });
+  if (res.status === 401) {
+    location.replace("/login.html");
+    throw new Error("Please sign in.");
+  }
+  return res;
+}
+
+async function logout() {
+  try {
+    await fetch("/api/logout", { method: "POST", credentials: "include" });
+  } finally {
+    location.replace("/login.html");
+  }
+}
+
+function nowLocal() {
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+}
+
+function showBanner(text, ok) {
+  const el = $("banner");
+  el.className = "banner " + (ok ? "ok" : "err");
+  el.textContent = text;
+}
+
+$("entryTime").value = nowLocal();
+$("reportDate").value = nowLocal().slice(0, 10);
+
+function fillSelect(id, items, labelKey, valueKey) {
+  const el = $(id);
+  el.innerHTML = items.map(item =>
+    `<option value="${escapeHtml(item[valueKey])}">${escapeHtml(item[labelKey])}</option>`
+  ).join("");
+}
+
+async function loadLookups() {
+  const res = await api("/api/lookups");
+  if (!res.ok) throw new Error("Could not load gates and rates");
+  const data = await res.json();
+  fillSelect("entryGate", data.gates, "name", "code");
+  fillSelect("modalExitGate", data.gates, "name", "code");
+  fillSelect("type", data.types, "name", "code");
+  rates = {};
+  names = {};
+  data.types.forEach(t => {
+    rates[t.code] = { single: t.single_rate, multiple: t.multiple_rate };
+    names[t.code] = t.name;
+  });
+}
+
+async function fetchVehicles() {
+  try {
+    const res = await api("/api/vehicles");
+    if (!res.ok) throw new Error("API error");
+    vehicles = await res.json();
+    showBanner("Connected to central server.", true);
+    render();
+  } catch (err) {
+    showBanner("Cannot reach the central server. Check LAN and that the server PC is running.", false);
+    console.error(err);
+  }
+}
+
+function calculate(v, end = new Date()) {
+  const start = new Date(v.entry);
+  const diffMs = Math.max(0, end - start);
+  const hours = diffMs / 3600000;
+  const slabs = Math.max(1, Math.ceil(hours / 24));
+  const rate = (rates[v.type] && rates[v.type][v.entryType]) || 0;
+  return { hours, slabs, amount: slabs * rate };
+}
+
+async function addVehicle() {
+  const number = $("vehicle").value.trim().toUpperCase().replace(/\s+/g, " ");
+  const gate = $("entryGate").value;
+  const type = $("type").value;
+  const entryType = $("entryType").value;
+  const entry = $("entryTime").value;
+
+  if (!number || !entry) {
+    alert("Enter vehicle number and entry time.");
+    return;
+  }
+
+  if (vehicles.some(v => v.number === number && !v.exit)) {
+    alert("Vehicle " + number + " is already inside.");
+    return;
+  }
+
+  try {
+    const res = await api("/api/vehicles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ number, entryGate: gate, type, entryType, entry })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(body.error || "Could not save entry.");
+      return;
+    }
+    $("vehicle").value = "";
+    $("entryTime").value = nowLocal();
+    await fetchVehicles();
+  } catch (e) {
+    alert("Cannot connect to the central server. Check the LAN connection.");
+  }
+}
+
+function openExitModal(id) {
+  const v = vehicles.find(x => x.id === id);
+  if (!v || v.exit) return;
+  currentExitId = id;
+  $("modalVehNo").textContent = v.number;
+  $("modalExitTime").value = nowLocal();
+  $("exitModal").style.display = "flex";
+}
+
+function closeExitModal() {
+  $("exitModal").style.display = "none";
+  currentExitId = null;
+}
+
+async function confirmExit() {
+  if (!currentExitId) return;
+  const v = vehicles.find(x => x.id === currentExitId);
+  if (!v) return;
+
+  const exitTime = $("modalExitTime").value || nowLocal();
+  const exitGate = $("modalExitGate").value;
+  const shouldAutoPrint = $("autoPrintCheck").checked;
+
+  try {
+    const res = await api(`/api/vehicles/${encodeURIComponent(v.id)}/exit`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ exit: exitTime, exitGate })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert(body.error || "Could not record exit.");
+      return;
+    }
+    const printId = v.id;
+    closeExitModal();
+    await fetchVehicles();
+    if (shouldAutoPrint) printReceipt(printId, true);
+  } catch (e) {
+    alert("Could not record the exit. Check the LAN connection.");
+  }
+}
+
+function render() {
+  const q = $("search").value.trim().toUpperCase();
+  const f = $("filter").value;
+  const body = $("records");
+  body.innerHTML = "";
+
+  let insideCount = 0, exitedCount = 0, totalRev = 0;
+
+  vehicles.forEach(v => {
+    const isExited = Boolean(v.exit);
+    if (isExited) {
+      exitedCount++;
+      totalRev += Number(v.amount);
+    } else {
+      insideCount++;
+    }
+
+    if (q && !v.number.includes(q)) return;
+    if (f === "inside" && isExited) return;
+    if (f === "exited" && !isExited) return;
+
+    const result = calculate(v, isExited ? new Date(v.exit) : new Date());
+    const hours = result.hours.toFixed(2);
+    const displayAmount = isExited ? v.amount : result.amount;
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(v.number)}</strong></td>
+      <td>${escapeHtml(v.entryGate || "GATE 1")}</td>
+      <td>${v.exitGate ? escapeHtml(v.exitGate) : '<span style="color:#94a3b8">-</span>'}</td>
+      <td>${escapeHtml(names[v.type] || v.type)}</td>
+      <td>${v.entryType === "single" ? "Single" : "Multiple"}</td>
+      <td>${new Date(v.entry).toLocaleString()}</td>
+      <td>${v.exit ? new Date(v.exit).toLocaleString() : '<span class="status-pill status-inside">INSIDE</span>'}</td>
+      <td>${hours} Hrs</td>
+      <td><strong>${money(displayAmount)}</strong></td>
+      <td class="actions no-print">
+        <button class="orange" onclick="printReceipt('${escapeHtml(v.id)}', false)">Print Receipt</button>
+        ${!v.exit ? `<button class="red" onclick="openExitModal('${escapeHtml(v.id)}')">Process Exit</button>` : `<span class="status-pill status-done" style="text-align:center">COMPLETED</span>`}
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+
+  $("total").textContent = vehicles.length;
+  $("inside").textContent = insideCount;
+  $("exited").textContent = exitedCount;
+  $("collection").textContent = money(totalRev);
+  report();
+}
+
+function report() {
+  const date = $("reportDate").value;
+  const list = vehicles.filter(v => v.exit && String(v.exit).slice(0, 10) === date);
+  const total = list.reduce((sum, v) => sum + Number(v.amount), 0);
+  $("reportAmount").value = money(total);
+  $("reportCount").value = list.length;
+}
+
+function exportCSV() {
+  const rows = [
+    ["Vehicle Number", "Entry Gate", "Exit Gate", "Vehicle Type", "Entry Type", "Entry Time", "Exit Time", "Duration (Hrs)", "Amount", "Status"]
+  ];
+  vehicles.forEach(v => {
+    const result = calculate(v, v.exit ? new Date(v.exit) : new Date());
+    rows.push([
+      v.number, v.entryGate || "GATE 1", v.exitGate || "-", names[v.type] || v.type,
+      v.entryType, v.entry, v.exit || "", result.hours.toFixed(2),
+      v.exit ? v.amount : result.amount, v.exit ? "Exited" : "Inside"
+    ]);
+  });
+  const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(",")).join("\r\n");
+  const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `CMDA_Vehicle_Log_${$("reportDate").value}.csv`;
+  a.click();
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+function printReceipt(id, autoTrigger = false) {
+  const v = vehicles.find(x => x.id === id);
+  if (!v) return;
+
+  const result = calculate(v, v.exit ? new Date(v.exit) : new Date());
+  const finalAmount = v.exit ? v.amount : result.amount;
+  const qrData = `NO:${v.number}|IN:${v.entryGate||'G1'}|OUT:${v.exitGate||'PENDING'}|AMT:${money(finalAmount)}`;
+
+  const w = window.open("", "_blank", "width=320,height=560");
+  if (!w) return alert("Allow popups to print receipt.");
+
+  w.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Ticket_${escapeHtml(v.number)}</title>
+      <script src="/qrcode.min.js"><\/script>
+      <style>
+        @page { size: 80mm auto; margin: 0; }
+        body { font-family: 'Courier New', monospace; margin: 0; padding: 8px; font-size: 12px; font-weight: 600; }
+        .ticket { width: 100%; max-width: 72mm; margin: 0 auto; text-align: left; }
+        .header { text-align: center; }
+        .header h3 { margin: 2px 0; font-size: 13px; font-weight: bold; }
+        .line { border-top: 1px dashed #000; margin: 6px 0; }
+        .row { display: flex; justify-content: space-between; margin: 3px 0; }
+        .amount-box { font-size: 16px; font-weight: bold; text-align: center; margin: 8px 0; }
+        .qrcode-wrap { display: flex; justify-content: center; margin: 8px 0; }
+        @media print { button { display: none !important; } }
+      </style>
+    </head>
+    <body>
+      <div class="ticket">
+        <div class="header">
+          <h3>CMDA MARKET COMMITTEE</h3>
+          <div>IRON & STEEL MARKET</div>
+        </div>
+        <div class="line"></div>
+        <div class="row"><span>Entry Gate:</span><span>${escapeHtml(v.entryGate || "GATE 1")}</span></div>
+        <div class="row"><span>Exit Gate:</span><span>${escapeHtml(v.exitGate || "PENDING")}</span></div>
+        <div class="row"><span>Vehicle No:</span><span><strong>${escapeHtml(v.number)}</strong></span></div>
+        <div class="row"><span>Vehicle Type:</span><span>${escapeHtml(String(v.type).toUpperCase())}</span></div>
+        <div class="row"><span>Pass Type:</span><span>${escapeHtml(String(v.entryType).toUpperCase())}</span></div>
+        <div class="line"></div>
+        <div class="row"><span>In:</span><span>${new Date(v.entry).toLocaleString()}</span></div>
+        <div class="row"><span>Out:</span><span>${v.exit ? new Date(v.exit).toLocaleString() : 'INSIDE'}</span></div>
+        <div class="row"><span>Duration:</span><span>${result.hours.toFixed(2)} Hrs</span></div>
+        <div class="line"></div>
+        <div class="amount-box">TOTAL: ${money(finalAmount)}</div>
+        <div class="line"></div>
+        <div class="qrcode-wrap"><div id="qrcode"></div></div>
+      </div>
+      <button onclick="window.print()" style="width:100%;padding:8px;margin-top:10px">PRINT RECEIPT</button>
+      <script>
+        window.onload = function() {
+          if (window.QRCode) {
+            new QRCode(document.getElementById("qrcode"), { text: ${JSON.stringify(qrData)}, width: 96, height: 96 });
+          }
+          ${autoTrigger ? `setTimeout(() => { window.focus(); window.print(); window.onafterprint = () => window.close(); }, 350);` : ''}
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+  w.document.close();
+}
+
+async function boot() {
+  try {
+    const sessionRes = await fetch("/api/session", { credentials: "include" });
+    if (!sessionRes.ok) {
+      location.replace("/login.html");
+      return;
+    }
+    const session = await sessionRes.json();
+    $("signedInUser").textContent = session.displayName || session.username;
+  } catch (e) {
+    location.replace("/login.html");
+    return;
+  }
+  try {
+    await loadLookups();
+  } catch (e) {
+    fillSelect("entryGate", [{ code: "GATE 1", name: "GATE 1" }, { code: "GATE 2", name: "GATE 2" }, { code: "GATE 3", name: "GATE 3" }], "name", "code");
+    fillSelect("modalExitGate", [{ code: "GATE 1", name: "GATE 1" }, { code: "GATE 2", name: "GATE 2" }, { code: "GATE 3", name: "GATE 3" }], "name", "code");
+    fillSelect("type", [
+      { code: "lorry", name: defaultNames.lorry },
+      { code: "lmv", name: defaultNames.lmv },
+      { code: "association", name: defaultNames.association }
+    ], "name", "code");
+  }
+  await fetchVehicles();
+  setInterval(fetchVehicles, 4000);
+}
+
+boot();
+</script>
+</body>
+</html>
